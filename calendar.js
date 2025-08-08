@@ -36,8 +36,15 @@ function initializeApp() {
   updatePersonOfMonthDisplay();
   setupEventListeners();
   
-  // Initialize Firebase sync
-  initializeFirebaseSync();
+  // Only try Firebase if it's available
+  if (typeof firebase !== 'undefined') {
+    console.log('Firebase available, initializing sync...');
+    initializeFirebaseSync();
+  } else {
+    console.log('Firebase not available, using local storage only');
+    // Load from localStorage instead
+    loadFromLocalStorage();
+  }
   
   // Update connection status
   updateConnectionStatus();
@@ -47,7 +54,7 @@ function initializeApp() {
     console.log('Firebase status check:');
     console.log('- Firebase loaded:', typeof firebase !== 'undefined');
     console.log('- Calendar database:', typeof window.calendarDatabase);
-    console.log('- Connection status:', connectionStatus.textContent);
+    console.log('- Connection status:', connectionStatus ? connectionStatus.textContent : 'Element not found');
   }, 2000);
 }
 
@@ -549,6 +556,13 @@ function initializeFirebaseSync() {
       return;
     }
     
+    // Check if Firebase is initialized
+    if (!firebase.apps.length) {
+      console.error('Firebase not initialized!');
+      loadFromLocalStorage();
+      return;
+    }
+    
     // Get database reference directly from Firebase
     let db;
     try {
@@ -980,13 +994,30 @@ document.addEventListener('DOMContentLoaded', () => {
           script2.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js';
           script2.onload = () => {
             console.log('Firebase database script loaded');
-            // Re-initialize Firebase
-            initializeFirebaseSync();
+            // Load firebase-config.js
+            const script3 = document.createElement('script');
+            script3.src = 'firebase-config.js';
+            script3.onload = () => {
+              console.log('Firebase config loaded');
+              // Re-initialize Firebase
+              initializeFirebaseSync();
+              updateConnectionStatus();
+            };
+            document.head.appendChild(script3);
           };
           document.head.appendChild(script2);
         };
         document.head.appendChild(script1);
+      } else {
+        console.log('Firebase already loaded, re-initializing...');
+        initializeFirebaseSync();
+        updateConnectionStatus();
       }
+    };
+    
+    window.reloadApp = () => {
+      console.log('Reloading app...');
+      location.reload();
     };
   });
 }); 
