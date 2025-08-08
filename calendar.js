@@ -334,9 +334,17 @@ function handleDateClick(dayElement) {
   console.log('Date object:', date);
   console.log('Current date:', currentDate);
   console.log('Today start:', todayStart);
+  console.log('Date time:', date.getTime());
+  console.log('Today start time:', todayStart.getTime());
   console.log('Is past date:', date < todayStart);
+  console.log('Date comparison result:', date < todayStart);
   
-  if (date < todayStart) {
+  // Check if this is today
+  const isToday = date.toDateString() === currentDate.toDateString();
+  console.log('Is today:', isToday);
+  
+  // Allow today and future dates, block only past dates
+  if (date < todayStart && !isToday) {
     console.log('❌ Past date clicked, showing notification');
     showNotification('Cannot select past dates!');
     return;
