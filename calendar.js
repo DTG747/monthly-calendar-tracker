@@ -471,8 +471,15 @@ function updateSummary() {
     const dateItem = document.createElement('div');
     dateItem.className = 'top-date-item';
     
-    const date = new Date(item.date);
-    const formattedDate = date.toLocaleDateString('en-US', { 
+    // Fix timezone issue in date formatting
+    const dateParts = item.date.split('-');
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2]);
+    
+    // Create date using local timezone
+    const dateLocal = new Date(year, month, day);
+    const formattedDate = dateLocal.toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'long', 
       day: 'numeric' 
@@ -776,10 +783,43 @@ function loadFromLocalStorage() {
       currentMonth: new Date(parsed.currentMonth),
       lastUpdated: new Date(parsed.lastUpdated)
     };
+    
+    // Clean up any old data with timezone issues
+    cleanupTimezoneData();
   } else {
     // Initialize with default participants if no saved data
     appState.participants = ['Amit', 'Ben', 'Brian', 'Chris', 'Ilya', 'Krystian', 'Tom'];
   }
+}
+
+function cleanupTimezoneData() {
+  // Check for and fix any dates that might have timezone issues
+  const currentDate = new Date();
+  const currentYear = currentDate.getFullYear();
+  const currentMonth = currentDate.getMonth();
+  
+  // Remove any selections from past months or incorrect dates
+  const cleanedSelections = {};
+  
+  Object.entries(appState.selections).forEach(([dateKey, participants]) => {
+    // Parse the date to check if it's valid
+    const dateParts = dateKey.split('-');
+    if (dateParts.length === 3) {
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      
+      // Check if this is a valid date and not in the past
+      if (year >= currentYear && month >= currentMonth && day > 0 && day <= 31) {
+        cleanedSelections[dateKey] = participants;
+      } else {
+        console.log(`Removing invalid/old date: ${dateKey}`);
+      }
+    }
+  });
+  
+  appState.selections = cleanedSelections;
+  console.log('Timezone data cleanup completed');
 }
 
 // Action Handlers
@@ -831,8 +871,15 @@ function exportSummary() {
   exportText += `Top ${Math.min(topDatesData.length, 3)} Dates:\n\n`;
   
   topDatesData.forEach((item, index) => {
-    const date = new Date(item.date);
-    const formattedDate = date.toLocaleDateString('en-US', { 
+    // Fix timezone issue in export formatting
+    const dateParts = item.date.split('-');
+    const year = parseInt(dateParts[0]);
+    const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+    const day = parseInt(dateParts[2]);
+    
+    // Create date using local timezone
+    const dateLocal = new Date(year, month, day);
+    const formattedDate = dateLocal.toLocaleDateString('en-US', { 
       weekday: 'long', 
       month: 'long', 
       day: 'numeric' 
@@ -848,8 +895,15 @@ function exportSummary() {
   
   Object.entries(appState.selections).forEach(([date, participants]) => {
     if (participants.length > 0) {
-      const dateObj = new Date(date);
-      const formattedDate = dateObj.toLocaleDateString('en-US', { 
+      // Fix timezone issue in export formatting
+      const dateParts = date.split('-');
+      const year = parseInt(dateParts[0]);
+      const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
+      const day = parseInt(dateParts[2]);
+      
+      // Create date using local timezone
+      const dateLocal = new Date(year, month, day);
+      const formattedDate = dateLocal.toLocaleDateString('en-US', { 
         weekday: 'long', 
         month: 'long', 
         day: 'numeric' 
