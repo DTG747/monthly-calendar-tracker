@@ -108,8 +108,17 @@ function renderCalendar() {
 
 function createDayElement(day, month, year) {
   const dayElement = document.createElement('div');
-  dayElement.className = 'calendar-day';
-  dayElement.dataset.date = formatDate(new Date(year, month, day));
+  const date = new Date(year, month, day);
+  const currentDate = new Date();
+  
+  // Check if this date is in the past
+  const isPastDate = date < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  
+  // Check if this is today
+  const isToday = date.toDateString() === currentDate.toDateString();
+  
+  dayElement.className = `calendar-day ${isPastDate ? 'past-date' : ''} ${isToday ? 'today' : ''}`;
+  dayElement.dataset.date = formatDate(date);
   
   const dayNumber = document.createElement('div');
   dayNumber.className = 'day-number';
@@ -121,8 +130,10 @@ function createDayElement(day, month, year) {
   dayElement.appendChild(dayNumber);
   dayElement.appendChild(participantInitials);
   
-  // Add click handler
-  dayElement.addEventListener('click', () => handleDateClick(dayElement));
+  // Add click handler only for current and future dates
+  if (!isPastDate) {
+    dayElement.addEventListener('click', () => handleDateClick(dayElement));
+  }
   
   // Update visual state
   updateDayVisualState(dayElement);
@@ -415,6 +426,16 @@ function updatePersonOfMonthDisplay() {
 function changeMonth(direction) {
   const newMonth = new Date(appState.currentMonth);
   newMonth.setMonth(newMonth.getMonth() + direction);
+  
+  // Prevent navigation to past months
+  const currentDate = new Date();
+  const currentMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  
+  if (newMonth < currentMonth) {
+    showNotification('Cannot navigate to past months!');
+    return;
+  }
+  
   appState.currentMonth = newMonth;
   
   calculatePersonOfTheMonth();
@@ -669,14 +690,18 @@ function checkMonthChange() {
   const currentMonth = appState.currentMonth;
   
   if (now.getMonth() !== currentMonth.getMonth() || now.getFullYear() !== currentMonth.getFullYear()) {
-    appState.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    calculatePersonOfTheMonth();
-    renderParticipants();
-    renderCalendar();
-    updateSummary();
-    updatePersonOfMonthDisplay();
-    saveToFirebase();
-    showNotification('Calendar updated to current month!');
+    // Only update to current month if we're in a past month
+    const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    if (currentMonth < currentMonthStart) {
+      appState.currentMonth = currentMonthStart;
+      calculatePersonOfTheMonth();
+      renderParticipants();
+      renderCalendar();
+      updateSummary();
+      updatePersonOfMonthDisplay();
+      saveToFirebase();
+      showNotification('Calendar updated to current month!');
+    }
   }
 }
 
