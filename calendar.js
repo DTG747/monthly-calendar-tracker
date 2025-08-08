@@ -334,30 +334,36 @@ function handleDateClick(dayElement) {
   console.log('Day element:', dayElement);
   console.log('Element dataset:', dayElement.dataset);
   
-  // Check if this is a past date (excluding today)
   const dateKey = dayElement.dataset.date;
   const date = new Date(dateKey);
   const currentDate = new Date();
-  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
   
   console.log('Date key:', dateKey);
   console.log('Date object:', date);
   console.log('Current date:', currentDate);
-  console.log('Today start:', todayStart);
-  console.log('Date time:', date.getTime());
-  console.log('Today start time:', todayStart.getTime());
-  console.log('Is past date:', date < todayStart);
-  console.log('Date comparison result:', date < todayStart);
   
   // Check if this is today
   const isToday = date.toDateString() === currentDate.toDateString();
   console.log('Is today:', isToday);
   
-  // Allow today and future dates, block only past dates
-  if (date < todayStart && !isToday) {
+  // Check if this is a past date (excluding today)
+  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  const isPastDate = date < todayStart;
+  console.log('Is past date:', isPastDate);
+  
+  // SIMPLE LOGIC: Allow today and future dates, block only past dates
+  if (isPastDate && !isToday) {
     console.log('❌ Past date clicked, showing notification');
     showNotification('Cannot select past dates!');
     return;
+  }
+  
+  // OVERRIDE: Always allow today's date regardless of any logic
+  if (isToday) {
+    console.log('✅ Today\'s date - always allowing selection');
+  } else {
+    // If it's today or a future date, allow selection
+    console.log('✅ Date is selectable (today or future)');
   }
   
   const currentSelections = appState.selections[dateKey] || [];
