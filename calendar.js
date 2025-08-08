@@ -133,8 +133,9 @@ function createDayElement(day, month, year) {
   const date = new Date(year, month, day);
   const currentDate = new Date();
   
-  // Check if this date is in the past
-  const isPastDate = date < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  // Check if this date is in the past (excluding today)
+  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  const isPastDate = date < todayStart;
   
   // Check if this is today
   const isToday = date.toDateString() === currentDate.toDateString();
@@ -152,7 +153,7 @@ function createDayElement(day, month, year) {
   dayElement.appendChild(dayNumber);
   dayElement.appendChild(participantInitials);
   
-  // Add click and touch handlers only for current and future dates
+  // Add click and touch handlers for today and future dates (allow today to be selected)
   if (!isPastDate) {
     dayElement.addEventListener('click', () => handleDateClick(dayElement));
     dayElement.addEventListener('touchend', (e) => {
@@ -270,12 +271,13 @@ function validateParticipantNames() {
 
 // Date Selection Logic
 function handleDateClick(dayElement) {
-  // Check if this is a past date
+  // Check if this is a past date (excluding today)
   const dateKey = dayElement.dataset.date;
   const date = new Date(dateKey);
   const currentDate = new Date();
+  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
   
-  if (date < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) {
+  if (date < todayStart) {
     showNotification('Cannot select past dates!');
     return;
   }
