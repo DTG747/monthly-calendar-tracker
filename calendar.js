@@ -43,12 +43,30 @@ function initializeApp() {
 
 // Event Listeners
 function setupEventListeners() {
+  console.log('Setting up event listeners');
+  console.log('Save button:', saveBtn);
+  
   prevMonthBtn.addEventListener('click', () => changeMonth(-1));
   nextMonthBtn.addEventListener('click', () => changeMonth(1));
-  saveBtn.addEventListener('click', saveSelections);
-  clearBtn.addEventListener('click', clearAllData);
-  exportBtn.addEventListener('click', exportSummary);
-  importBtn.addEventListener('click', importData);
+  
+  if (saveBtn) {
+    saveBtn.addEventListener('click', saveSelections);
+    console.log('Save button event listener added');
+  } else {
+    console.error('Save button not found!');
+  }
+  
+  if (clearBtn) {
+    clearBtn.addEventListener('click', clearAllData);
+  }
+  
+  if (exportBtn) {
+    exportBtn.addEventListener('click', exportSummary);
+  }
+  
+  if (importBtn) {
+    importBtn.addEventListener('click', importData);
+  }
 }
 
 // Calendar Management
@@ -589,8 +607,27 @@ function loadFromLocalStorage() {
 
 // Action Handlers
 function saveSelections() {
-  saveToFirebase();
-  showNotification('Selections saved and shared with team!');
+  console.log('Save button clicked');
+  console.log('Current selections:', appState.selections);
+  
+  // Visual feedback
+  saveBtn.style.backgroundColor = '#28a745';
+  saveBtn.textContent = 'Saving...';
+  
+  setTimeout(() => {
+    saveBtn.style.backgroundColor = '';
+    saveBtn.textContent = 'Save Selections';
+  }, 1000);
+  
+  try {
+    saveToFirebase();
+    showNotification('Selections saved and shared with team!');
+  } catch (error) {
+    console.error('Save error:', error);
+    // Fallback to localStorage
+    saveToLocalStorage();
+    showNotification('Saved locally (Firebase unavailable)');
+  }
 }
 
 function clearAllData() {
@@ -776,4 +813,8 @@ document.addEventListener('DOMContentLoaded', () => {
   
   // Also check on page focus
   window.addEventListener('focus', checkMonthChange);
+  
+  // Add manual save function to window for debugging
+  window.manualSave = saveSelections;
+  window.debugAppState = () => console.log('App State:', appState);
 }); 
