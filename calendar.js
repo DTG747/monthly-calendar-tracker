@@ -23,6 +23,7 @@ const saveBtn = document.getElementById('saveBtn');
 const clearBtn = document.getElementById('clearBtn');
 const exportBtn = document.getElementById('exportBtn');
 const importBtn = document.getElementById('importBtn');
+const connectionStatus = document.getElementById('connectionStatus');
 
 // Initialize Application
 function initializeApp() {
@@ -35,6 +36,9 @@ function initializeApp() {
   
   // Initialize Firebase sync
   initializeFirebaseSync();
+  
+  // Update connection status
+  updateConnectionStatus();
 }
 
 // Event Listeners
@@ -130,9 +134,13 @@ function createDayElement(day, month, year) {
   dayElement.appendChild(dayNumber);
   dayElement.appendChild(participantInitials);
   
-  // Add click handler only for current and future dates
+  // Add click and touch handlers only for current and future dates
   if (!isPastDate) {
     dayElement.addEventListener('click', () => handleDateClick(dayElement));
+    dayElement.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      handleDateClick(dayElement);
+    });
   }
   
   // Update visual state
@@ -244,7 +252,16 @@ function validateParticipantNames() {
 
 // Date Selection Logic
 function handleDateClick(dayElement) {
+  // Check if this is a past date
   const dateKey = dayElement.dataset.date;
+  const date = new Date(dateKey);
+  const currentDate = new Date();
+  
+  if (date < new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate())) {
+    showNotification('Cannot select past dates!');
+    return;
+  }
+  
   const currentSelections = appState.selections[dateKey] || [];
   
   // Show participant selection dialog
@@ -422,6 +439,22 @@ function updatePersonOfMonthDisplay() {
   }
 }
 
+function updateConnectionStatus() {
+  try {
+    // Check if Firebase is available
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+      connectionStatus.innerHTML = '🟢 Connected';
+      connectionStatus.className = 'connection-status connected';
+    } else {
+      connectionStatus.innerHTML = '🔴 Offline (Local)';
+      connectionStatus.className = 'connection-status disconnected';
+    }
+  } catch (error) {
+    connectionStatus.innerHTML = '🔴 Offline (Local)';
+    connectionStatus.className = 'connection-status disconnected';
+  }
+}
+
 // Month Navigation
 function changeMonth(direction) {
   const newMonth = new Date(appState.currentMonth);
@@ -448,27 +481,37 @@ function changeMonth(direction) {
 
 // Firebase Real-time Sync
 function initializeFirebaseSync() {
-  // Get current month key for database
-  const monthKey = getMonthKey(appState.currentMonth);
-  
-  // Listen for real-time updates
-  database.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
-    const data = snapshot.val();
-    if (data && !isInitialLoad) {
-      // Update app state with data from Firebase
-      appState.selections = data.selections || {};
-      appState.participants = data.participants || appState.participants;
-      
-      // Re-render the calendar and summary
-      renderCalendar();
-      updateSummary();
-      showNotification('Calendar updated from team!');
-    }
-    isInitialLoad = false;
-  });
-  
-  // Load initial data
-  loadFromFirebase();
+  try {
+    // Get current month key for database
+    const monthKey = getMonthKey(appState.currentMonth);
+    
+    // Listen for real-time updates
+    database.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
+      const data = snapshot.val();
+      if (data && !isInitialLoad) {
+        // Update app state with data from Firebase
+        appState.selections = data.selections || {};
+        appState.participants = data.participants || appState.participants;
+        
+        // Re-render the calendar and summary
+        renderCalendar();
+        updateSummary();
+        showNotification('Calendar updated from team!');
+      }
+      isInitialLoad = false;
+    }, (error) => {
+      console.error('Firebase read error:', error);
+      // Fallback to localStorage if Firebase fails
+      loadFromLocalStorage();
+    });
+    
+    // Load initial data
+    loadFromFirebase();
+  } catch (error) {
+    console.error('Firebase initialization error:', error);
+    // Fallback to localStorage if Firebase fails
+    loadFromLocalStorage();
+  }
 }
 
 function loadFromFirebase() {
@@ -482,22 +525,41 @@ function loadFromFirebase() {
         appState.participants = data.participants || appState.participants;
         renderCalendar();
         updateSummary();
+      } else {
+        // No Firebase data, try localStorage
+        loadFromLocalStorage();
       }
     })
     .catch((error) => {
-      console.log('No existing data found, starting fresh');
+      console.error('Firebase load error:', error);
+      // Fallback to localStorage
+      loadFromLocalStorage();
     });
 }
 
 function saveToFirebase() {
-  const monthKey = getMonthKey(appState.currentMonth);
-  appState.lastUpdated = new Date();
-  
-  database.ref(`calendar/${monthKey}`).set({
-    selections: appState.selections,
-    participants: appState.participants,
-    lastUpdated: appState.lastUpdated.toISOString()
-  });
+  try {
+    const monthKey = getMonthKey(appState.currentMonth);
+    appState.lastUpdated = new Date();
+    
+    database.ref(`calendar/${monthKey}`).set({
+      selections: appState.selections,
+      participants: appState.participants,
+      lastUpdated: appState.lastUpdated.toISOString()
+    }).then(() => {
+      console.log('Data saved to Firebase successfully');
+    }).catch((error) => {
+      console.error('Firebase save error:', error);
+      // Fallback to localStorage
+      saveToLocalStorage();
+      showNotification('Saved locally (Firebase unavailable)');
+    });
+  } catch (error) {
+    console.error('Firebase save error:', error);
+    // Fallback to localStorage
+    saveToLocalStorage();
+    showNotification('Saved locally (Firebase unavailable)');
+  }
 }
 
 function getMonthKey(date) {
