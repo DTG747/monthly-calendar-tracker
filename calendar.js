@@ -342,13 +342,18 @@ function handleDateClick(dayElement) {
   console.log('Date object:', date);
   console.log('Current date:', currentDate);
   
-  // Check if this is today
-  const isToday = date.toDateString() === currentDate.toDateString();
+  // Fix timezone issue by using local date comparison
+  const dateLocal = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const currentDateLocal = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
+  
+  // Check if this is today using local dates
+  const isToday = dateLocal.getTime() === currentDateLocal.getTime();
+  console.log('Date local:', dateLocal);
+  console.log('Current date local:', currentDateLocal);
   console.log('Is today:', isToday);
   
-  // Check if this is a past date (excluding today)
-  const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
-  const isPastDate = date < todayStart;
+  // Check if this is a past date using local dates
+  const isPastDate = dateLocal < currentDateLocal;
   console.log('Is past date:', isPastDate);
   
   // SIMPLE LOGIC: Allow today and future dates, block only past dates

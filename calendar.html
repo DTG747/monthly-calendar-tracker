@@ -56,33 +56,42 @@
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
     import { getDatabase } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
     
-    // Your web app's Firebase configuration
-    const firebaseConfig = {
-      apiKey: "AIzaSyBNEGMwnn075RYYxXc9NQNCGoYtrhq_Q_0",
-      authDomain: "monthlycalendartracker.firebaseapp.com",
-      databaseURL: "https://monthlycalendartracker-default-rtdb.firebaseio.com",
-      projectId: "monthlycalendartracker",
-      storageBucket: "monthlycalendartracker.firebasestorage.app",
-      messagingSenderId: "151202130765",
-      appId: "1:151202130765:web:563379d60ebb44a0bce504",
-      measurementId: "G-E3RBH9FV5Q"
-    };
+    try {
+      console.log('Loading Firebase SDK...');
+      console.log('Firebase modules imported successfully');
+      
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyBNEGMwnn075RYYxXc9NQNCGoYtrhq_Q_0",
+        authDomain: "monthlycalendartracker.firebaseapp.com",
+        databaseURL: "https://monthlycalendartracker-default-rtdb.firebaseio.com",
+        projectId: "monthlycalendartracker",
+        storageBucket: "monthlycalendartracker.firebasestorage.app",
+        messagingSenderId: "151202130765",
+        appId: "1:151202130765:web:563379d60ebb44a0bce504",
+        measurementId: "G-E3RBH9FV5Q"
+      };
 
-    // Initialize Firebase
-    const app = initializeApp(firebaseConfig);
-    console.log('Firebase initialized successfully with modern SDK');
+      // Initialize Firebase
+      const app = initializeApp(firebaseConfig);
+      console.log('Firebase initialized successfully with modern SDK');
 
-    // Get a reference to the database service
-    const database = getDatabase(app);
-    console.log('Database reference created successfully');
+      // Get a reference to the database service
+      const database = getDatabase(app);
+      console.log('Database reference created successfully');
 
-    // Make Firebase available globally for the calendar app
-    window.firebase = { app, database };
-    window.database = database;
-    
-    // Signal that Firebase is ready
-    window.firebaseReady = true;
-    console.log('Firebase ready for calendar app');
+      // Make Firebase available globally for the calendar app
+      window.firebase = { app, database };
+      window.database = database;
+      
+      // Signal that Firebase is ready
+      window.firebaseReady = true;
+      console.log('Firebase ready for calendar app');
+    } catch (error) {
+      console.error('Firebase initialization error:', error);
+      window.firebaseReady = false;
+      window.database = null;
+    }
   </script>
   <script src="calendar.js"></script>
 </body>
