@@ -185,31 +185,41 @@ function createDayElement(day, month, year) {
   dayElement.appendChild(dayNumber);
   dayElement.appendChild(participantInitials);
   
-  // Add click and touch handlers for today and future dates (allow today to be selected)
-  if (!isPastDate) {
-    dayElement.addEventListener('click', () => {
-      console.log('Date clicked:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
-      handleDateClick(dayElement);
-    });
-    dayElement.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      console.log('Date touched:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
-      handleDateClick(dayElement);
-    });
-  } else if (isToday) {
-    console.log('❌ Today\'s date is marked as past date - this is wrong!');
-    console.log('Adding click handler anyway for today\'s date...');
-    // Force add click handler for today's date
-    dayElement.addEventListener('click', () => {
-      console.log('Today\'s date clicked (forced):', formatDate(date));
-      handleDateClick(dayElement);
-    });
-    dayElement.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      console.log('Today\'s date touched (forced):', formatDate(date));
-      handleDateClick(dayElement);
-    });
-  }
+      // Add click and touch handlers for today and future dates (allow today to be selected)
+    if (!isPastDate) {
+      dayElement.addEventListener('click', () => {
+        console.log('Date clicked:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
+        handleDateClick(dayElement);
+      });
+      dayElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        console.log('Date touched:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
+        handleDateClick(dayElement);
+      });
+    } else if (isToday) {
+      console.log('❌ Today\'s date is marked as past date - this is wrong!');
+      console.log('Adding click handler anyway for today\'s date...');
+      // Force add click handler for today's date
+      dayElement.addEventListener('click', () => {
+        console.log('Today\'s date clicked (forced):', formatDate(date));
+        handleDateClick(dayElement);
+      });
+      dayElement.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        console.log('Today\'s date touched (forced):', formatDate(date));
+        handleDateClick(dayElement);
+      });
+    }
+    
+    // ALWAYS add click handler for today's date regardless of past date logic
+    if (isToday) {
+      console.log('Adding guaranteed click handler for today\'s date');
+      dayElement.addEventListener('click', (e) => {
+        e.stopPropagation();
+        console.log('Today\'s date clicked (guaranteed):', formatDate(date));
+        handleDateClick(dayElement);
+      });
+    }
   
   // Update visual state
   updateDayVisualState(dayElement);
@@ -1100,6 +1110,42 @@ document.addEventListener('DOMContentLoaded', () => {
   window.reloadApp = () => {
     console.log('Reloading app...');
     location.reload();
+  };
+  
+  window.testTodayClick = () => {
+    console.log('Testing today\'s date click manually...');
+    const today = new Date();
+    const todayString = today.toDateString();
+    console.log('Looking for today:', todayString);
+    
+    const allDays = document.querySelectorAll('.calendar-day');
+    let todayElement = null;
+    
+    allDays.forEach((day, index) => {
+      const dateKey = day.dataset.date;
+      if (dateKey) {
+        const date = new Date(dateKey);
+        if (date.toDateString() === todayString) {
+          console.log(`Found today's element at index ${index}:`, day);
+          todayElement = day;
+        }
+      }
+    });
+    
+    if (todayElement) {
+      console.log('Manually clicking today\'s element...');
+      todayElement.click();
+    } else {
+      console.log('Today\'s element not found!');
+    }
+  };
+  
+  window.forceOpenSelector = () => {
+    console.log('Force opening participant selector...');
+    const today = new Date();
+    const dateKey = formatDate(today);
+    const currentSelections = appState.selections[dateKey] || [];
+    showParticipantSelector(dateKey, currentSelections, null);
   };
   
   // Try to load Firebase in the background
