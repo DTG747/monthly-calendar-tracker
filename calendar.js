@@ -335,26 +335,25 @@ function handleDateClick(dayElement) {
   console.log('Element dataset:', dayElement.dataset);
   
   const dateKey = dayElement.dataset.date;
-  const date = new Date(dateKey);
   const currentDate = new Date();
   
   console.log('Date key:', dateKey);
-  console.log('Date object:', date);
   console.log('Current date:', currentDate);
   
-  // Fix timezone issue by parsing date string properly
+  // COMPLETELY NEW: Parse date string manually to avoid timezone issues
   const dateParts = dateKey.split('-');
   const year = parseInt(dateParts[0]);
   const month = parseInt(dateParts[1]) - 1; // Month is 0-indexed
   const day = parseInt(dateParts[2]);
   
-  // Create date using local timezone
+  // Create date using local timezone (no timezone conversion)
   const dateLocal = new Date(year, month, day);
   const currentDateLocal = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
   
   // Check if this is today using local dates
   const isToday = dateLocal.getTime() === currentDateLocal.getTime();
-  console.log('Date key:', dateKey);
+  
+  console.log('NEW PARSING:');
   console.log('Date parts:', { year, month: month + 1, day });
   console.log('Date local:', dateLocal);
   console.log('Current date local:', currentDateLocal);
