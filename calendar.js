@@ -37,7 +37,7 @@ function initializeApp() {
   setupEventListeners();
   
   // Only try Firebase if it's available
-  if (typeof firebase !== 'undefined') {
+  if (window.firebaseAvailable && typeof firebase !== 'undefined') {
     console.log('Firebase available, initializing sync...');
     initializeFirebaseSync();
   } else {
@@ -53,6 +53,7 @@ function initializeApp() {
   setTimeout(() => {
     console.log('Firebase status check:');
     console.log('- Firebase loaded:', typeof firebase !== 'undefined');
+    console.log('- Firebase available flag:', window.firebaseAvailable);
     console.log('- Calendar database:', typeof window.calendarDatabase);
     console.log('- Connection status:', connectionStatus ? connectionStatus.textContent : 'Element not found');
   }, 2000);
@@ -922,11 +923,11 @@ function waitForFirebase(callback, maxAttempts = 10) {
     
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
       console.log('✅ Firebase loaded successfully');
-      callback();
+      callback(true); // Firebase is available
     } else if (attempts >= maxAttempts) {
       console.log('❌ Firebase failed to load after maximum attempts');
       console.log('Continuing with local storage only...');
-      callback();
+      callback(false); // Firebase is not available
     } else {
       console.log('Firebase not ready yet, retrying...');
       setTimeout(checkFirebase, 500);
@@ -941,8 +942,12 @@ document.addEventListener('DOMContentLoaded', () => {
   console.log('DOM loaded, waiting for Firebase...');
   
   // Wait for Firebase to load before initializing app
-  waitForFirebase(() => {
+  waitForFirebase((firebaseAvailable) => {
     console.log('Initializing app...');
+    
+    // Set global Firebase availability flag
+    window.firebaseAvailable = firebaseAvailable;
+    
     initializeApp();
     
     // Check for month change every hour
@@ -1000,6 +1005,7 @@ document.addEventListener('DOMContentLoaded', () => {
             script3.onload = () => {
               console.log('Firebase config loaded');
               // Re-initialize Firebase
+              window.firebaseAvailable = true;
               initializeFirebaseSync();
               updateConnectionStatus();
             };
@@ -1010,6 +1016,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.head.appendChild(script1);
       } else {
         console.log('Firebase already loaded, re-initializing...');
+        window.firebaseAvailable = true;
         initializeFirebaseSync();
         updateConnectionStatus();
       }
