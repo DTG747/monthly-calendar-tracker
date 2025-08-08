@@ -3,11 +3,13 @@ let appState = {
   currentMonth: new Date(),
   participants: ['Amit', 'Ben', 'Brian', 'Chris', 'Ilya', 'Krystian', 'Tom'],
   selections: {},
-  lastUpdated: new Date()
+  lastUpdated: new Date(),
+  personOfTheMonth: null
 };
 
 // DOM Elements
 const monthDisplay = document.getElementById('monthDisplay');
+const personOfMonthDisplay = document.getElementById('personOfMonthDisplay');
 const prevMonthBtn = document.getElementById('prevMonth');
 const nextMonthBtn = document.getElementById('nextMonth');
 const participantInputs = document.getElementById('participantInputs');
@@ -20,9 +22,11 @@ const exportBtn = document.getElementById('exportBtn');
 // Initialize Application
 function initializeApp() {
   loadFromLocalStorage();
+  calculatePersonOfTheMonth();
   renderParticipants();
   renderCalendar();
   updateSummary();
+  updatePersonOfMonthDisplay();
   setupEventListeners();
 }
 
@@ -158,17 +162,32 @@ function renderParticipants() {
   participantInputs.innerHTML = '';
   
   for (let i = 0; i < 7; i++) {
+    const participant = appState.participants[i];
+    const isPersonOfTheMonth = participant === appState.personOfTheMonth;
+    
+    const participantContainer = document.createElement('div');
+    participantContainer.className = 'participant-container';
+    
     const input = document.createElement('input');
     input.type = 'text';
-    input.className = 'participant-input';
+    input.className = `participant-input ${isPersonOfTheMonth ? 'person-of-month' : ''}`;
     input.placeholder = `Participant ${i + 1}`;
-    input.value = appState.participants[i] || '';
+    input.value = participant || '';
     input.dataset.index = i;
     
     input.addEventListener('input', handleParticipantInput);
     input.addEventListener('blur', validateParticipantNames);
     
-    participantInputs.appendChild(input);
+    participantContainer.appendChild(input);
+    
+    if (isPersonOfTheMonth) {
+      const badge = document.createElement('span');
+      badge.className = 'person-of-month-badge';
+      badge.textContent = '👑 HNIC';
+      participantContainer.appendChild(badge);
+    }
+    
+    participantInputs.appendChild(participantContainer);
   }
 }
 
@@ -343,14 +362,58 @@ function updateTopDatesVisualState(topDatesData) {
   });
 }
 
+// Person of the Month Calculation
+function calculatePersonOfTheMonth() {
+  const currentDate = new Date();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
+  
+  // Start with Ben in August 2024 (month 7, 0-indexed)
+  const startMonth = 7; // August (0-indexed)
+  const startYear = 2024;
+  
+  // Calculate months since start
+  const monthsSinceStart = (currentYear - startYear) * 12 + (currentMonth - startMonth);
+  
+  // For August 2024, we want Ben (index 1)
+  // For September 2024, we want Brian (index 2)
+  // For October 2024, we want Chris (index 3)
+  // For November 2024, we want Ilya (index 4)
+  // For December 2024, we want Krystian (index 5)
+  // For January 2025, we want Tom (index 6)
+  // For February 2025, we want Amit (index 0)
+  // For March 2025, we want Ben (index 1) - cycle repeats
+  // For August 2025, we want Ben (index 1) - 12 months later
+  
+  // Calculate which participant should be highlighted
+  // For August 2025, we want Ben (index 1)
+  // Since we're in August 2025, we want Ben regardless of the year
+  // We'll use the month to determine the cycle position
+  const monthInCycle = currentMonth % appState.participants.length;
+  const participantIndex = (monthInCycle + 1) % appState.participants.length;
+  
+  appState.personOfTheMonth = appState.participants[participantIndex];
+}
+
+function updatePersonOfMonthDisplay() {
+  if (appState.personOfTheMonth) {
+    personOfMonthDisplay.innerHTML = `👑 ${appState.personOfTheMonth} - HNIC`;
+  } else {
+    personOfMonthDisplay.innerHTML = '';
+  }
+}
+
 // Month Navigation
 function changeMonth(direction) {
   const newMonth = new Date(appState.currentMonth);
   newMonth.setMonth(newMonth.getMonth() + direction);
   appState.currentMonth = newMonth;
   
+  calculatePersonOfTheMonth();
+  renderParticipants();
   renderCalendar();
   updateSummary();
+  updatePersonOfMonthDisplay();
   saveToLocalStorage();
 }
 
@@ -498,8 +561,11 @@ function checkMonthChange() {
   
   if (now.getMonth() !== currentMonth.getMonth() || now.getFullYear() !== currentMonth.getFullYear()) {
     appState.currentMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    calculatePersonOfTheMonth();
+    renderParticipants();
     renderCalendar();
     updateSummary();
+    updatePersonOfMonthDisplay();
     saveToLocalStorage();
     showNotification('Calendar updated to current month!');
   }
