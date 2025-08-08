@@ -27,6 +27,8 @@ const connectionStatus = document.getElementById('connectionStatus');
 
 // Initialize Application
 function initializeApp() {
+  console.log('Initializing calendar app...');
+  
   calculatePersonOfTheMonth();
   renderParticipants();
   renderCalendar();
@@ -39,6 +41,14 @@ function initializeApp() {
   
   // Update connection status
   updateConnectionStatus();
+  
+  // Debug: Check Firebase status after initialization
+  setTimeout(() => {
+    console.log('Firebase status check:');
+    console.log('- Firebase loaded:', typeof firebase !== 'undefined');
+    console.log('- Calendar database:', typeof window.calendarDatabase);
+    console.log('- Connection status:', connectionStatus.textContent);
+  }, 2000);
 }
 
 // Event Listeners
@@ -140,6 +150,12 @@ function createDayElement(day, month, year) {
   // Check if this is today
   const isToday = date.toDateString() === currentDate.toDateString();
   
+  // Debug logging for today's date
+  if (isToday) {
+    console.log('Today\'s date found:', date.toDateString());
+    console.log('Is past date:', isPastDate);
+  }
+  
   dayElement.className = `calendar-day ${isPastDate ? 'past-date' : ''} ${isToday ? 'today' : ''}`;
   dayElement.dataset.date = formatDate(date);
   
@@ -155,11 +171,17 @@ function createDayElement(day, month, year) {
   
   // Add click and touch handlers for today and future dates (allow today to be selected)
   if (!isPastDate) {
-    dayElement.addEventListener('click', () => handleDateClick(dayElement));
-    dayElement.addEventListener('touchend', (e) => {
-      e.preventDefault();
+    dayElement.addEventListener('click', () => {
+      console.log('Date clicked:', formatDate(date), 'Is today:', isToday);
       handleDateClick(dayElement);
     });
+    dayElement.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      console.log('Date touched:', formatDate(date), 'Is today:', isToday);
+      handleDateClick(dayElement);
+    });
+  } else if (isToday) {
+    console.log('Today\'s date is marked as past date - this is wrong!');
   }
   
   // Update visual state
@@ -876,7 +898,7 @@ document.addEventListener('DOMContentLoaded', () => {
   setTimeout(() => {
     console.log('Testing Firebase connection...');
     console.log('Firebase object:', typeof firebase);
-    console.log('Database object:', typeof database);
+    console.log('Calendar database:', typeof window.calendarDatabase);
     
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
       console.log('✅ Firebase is loaded and initialized');
@@ -884,10 +906,10 @@ document.addEventListener('DOMContentLoaded', () => {
       console.log('❌ Firebase is not properly loaded');
     }
     
-    if (typeof database !== 'undefined' && database !== null) {
-      console.log('✅ Database reference is available');
+    if (typeof window.calendarDatabase !== 'undefined' && window.calendarDatabase !== null) {
+      console.log('✅ Calendar database reference is available');
     } else {
-      console.log('❌ Database reference is not available');
+      console.log('❌ Calendar database reference is not available');
     }
   }, 1000);
   
@@ -899,13 +921,14 @@ document.addEventListener('DOMContentLoaded', () => {
   // Also check on page focus
   window.addEventListener('focus', checkMonthChange);
   
-  // Add manual save function to window for debugging
+  // Add manual functions to window for debugging
   window.manualSave = saveSelections;
   window.debugAppState = () => console.log('App State:', appState);
   window.testFirebase = () => {
     console.log('Testing Firebase write...');
-    if (database) {
-      database.ref('test').set({timestamp: Date.now()}).then(() => {
+    const db = window.calendarDatabase || firebase.database();
+    if (db) {
+      db.ref('test').set({timestamp: Date.now()}).then(() => {
         console.log('✅ Firebase write test successful');
       }).catch((error) => {
         console.error('❌ Firebase write test failed:', error);
@@ -913,5 +936,15 @@ document.addEventListener('DOMContentLoaded', () => {
     } else {
       console.log('❌ Database not available for test');
     }
+  };
+  window.forceFirebaseSave = () => {
+    console.log('Force saving to Firebase...');
+    saveToFirebase();
+  };
+  window.checkTodayDate = () => {
+    const today = new Date();
+    console.log('Today:', today.toDateString());
+    console.log('Today start:', new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+    console.log('Is today past date?', today < new Date(today.getFullYear(), today.getMonth(), today.getDate()));
   };
 }); 
