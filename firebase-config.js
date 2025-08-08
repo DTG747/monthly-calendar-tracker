@@ -11,7 +11,17 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('Firebase initialized successfully');
+} catch (error) {
+  console.error('Firebase initialization error:', error);
+}
 
 // Get database reference
-const database = firebase.database(); 
+try {
+  const database = firebase.database();
+  console.log('Database reference created successfully');
+} catch (error) {
+  console.error('Database reference error:', error);
+} 

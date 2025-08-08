@@ -459,15 +459,23 @@ function updatePersonOfMonthDisplay() {
 
 function updateConnectionStatus() {
   try {
+    console.log('Checking Firebase connection...');
+    console.log('Firebase object:', typeof firebase);
+    console.log('Firebase apps:', firebase?.apps);
+    console.log('Database object:', typeof database);
+    
     // Check if Firebase is available
     if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
       connectionStatus.innerHTML = '🟢 Connected';
       connectionStatus.className = 'connection-status connected';
+      console.log('Firebase is connected');
     } else {
       connectionStatus.innerHTML = '🔴 Offline (Local)';
       connectionStatus.className = 'connection-status disconnected';
+      console.log('Firebase is not available');
     }
   } catch (error) {
+    console.error('Connection status error:', error);
     connectionStatus.innerHTML = '🔴 Offline (Local)';
     connectionStatus.className = 'connection-status disconnected';
   }
@@ -499,12 +507,29 @@ function changeMonth(direction) {
 
 // Firebase Real-time Sync
 function initializeFirebaseSync() {
+  console.log('Initializing Firebase sync...');
+  
   try {
+    // Check if Firebase is properly loaded
+    if (typeof firebase === 'undefined') {
+      console.error('Firebase is not loaded!');
+      loadFromLocalStorage();
+      return;
+    }
+    
+    if (typeof database === 'undefined') {
+      console.error('Database is not initialized!');
+      loadFromLocalStorage();
+      return;
+    }
+    
     // Get current month key for database
     const monthKey = getMonthKey(appState.currentMonth);
+    console.log('Month key:', monthKey);
     
     // Listen for real-time updates
     database.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
+      console.log('Firebase data received:', snapshot.val());
       const data = snapshot.val();
       if (data && !isInitialLoad) {
         // Update app state with data from Firebase
@@ -556,9 +581,33 @@ function loadFromFirebase() {
 }
 
 function saveToFirebase() {
+  console.log('Attempting to save to Firebase...');
+  
   try {
+    // Check if Firebase is available
+    if (typeof firebase === 'undefined') {
+      console.error('Firebase is not loaded!');
+      saveToLocalStorage();
+      showNotification('Saved locally (Firebase not loaded)');
+      return;
+    }
+    
+    if (typeof database === 'undefined') {
+      console.error('Database is not initialized!');
+      saveToLocalStorage();
+      showNotification('Saved locally (Database not initialized)');
+      return;
+    }
+    
     const monthKey = getMonthKey(appState.currentMonth);
     appState.lastUpdated = new Date();
+    
+    console.log('Saving to Firebase with month key:', monthKey);
+    console.log('Data to save:', {
+      selections: appState.selections,
+      participants: appState.participants,
+      lastUpdated: appState.lastUpdated.toISOString()
+    });
     
     database.ref(`calendar/${monthKey}`).set({
       selections: appState.selections,
