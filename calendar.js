@@ -556,8 +556,8 @@ function updatePersonOfMonthDisplay() {
 function updateConnectionStatus() {
   try {
     console.log('Checking Firebase connection...');
-    console.log('Firebase object:', typeof firebase);
-    console.log('Firebase apps:', firebase?.apps);
+    console.log('Firebase ready:', window.firebaseReady);
+    console.log('Database available:', !!window.database);
     console.log('Calendar database:', typeof window.calendarDatabase);
     
     // Check if connection status element exists
@@ -567,7 +567,7 @@ function updateConnectionStatus() {
     }
     
     // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && window.calendarDatabase) {
+    if (window.firebaseReady && window.database) {
       connectionStatus.innerHTML = '🟢 Connected';
       connectionStatus.className = 'connection-status connected';
       console.log('Firebase is connected');
@@ -610,41 +610,30 @@ function changeMonth(direction) {
 }
 
 // Firebase Real-time Sync
-function initializeFirebaseSync() {
+async function initializeFirebaseSync() {
   console.log('Initializing Firebase sync...');
   
   try {
     // Check if Firebase is properly loaded
-    if (typeof firebase === 'undefined') {
+    if (!window.firebaseReady || !window.database) {
       console.error('Firebase is not loaded!');
       loadFromLocalStorage();
       return;
     }
     
-    // Check if Firebase is initialized
-    if (!firebase.apps.length) {
-      console.error('Firebase not initialized!');
-      loadFromLocalStorage();
-      return;
-    }
-    
-    // Get database reference directly from Firebase
-    let db;
-    try {
-      db = firebase.database();
-      console.log('Database reference created successfully');
-    } catch (dbError) {
-      console.error('Database reference error:', dbError);
-      loadFromLocalStorage();
-      return;
-    }
+    // Get database reference from window
+    let db = window.database;
+    console.log('Database reference available:', !!db);
     
     // Get current month key for database
     const monthKey = getMonthKey(appState.currentMonth);
     console.log('Month key:', monthKey);
     
-    // Listen for real-time updates
-    db.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
+    // Import Firebase database functions
+    const { ref, onValue } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+    const calendarRef = ref(db, `calendar/${monthKey}`);
+    
+    onValue(calendarRef, (snapshot) => {
       console.log('Firebase data received:', snapshot.val());
       const data = snapshot.val();
       if (data && !isInitialLoad) {
@@ -676,38 +665,46 @@ function initializeFirebaseSync() {
   }
 }
 
-function loadFromFirebase() {
+async function loadFromFirebase() {
   const monthKey = getMonthKey(appState.currentMonth);
   
   // Get database reference
-  const db = window.calendarDatabase || firebase.database();
+  const db = window.calendarDatabase || window.database;
   
-  db.ref(`calendar/${monthKey}`).once('value')
-    .then((snapshot) => {
-      const data = snapshot.val();
-      if (data) {
-        appState.selections = data.selections || {};
-        appState.participants = data.participants || appState.participants;
-        renderCalendar();
-        updateSummary();
-      } else {
-        // No Firebase data, try localStorage
-        loadFromLocalStorage();
-      }
-    })
-    .catch((error) => {
-      console.error('Firebase load error:', error);
-      // Fallback to localStorage
+  if (!db) {
+    console.error('Database not available');
+    loadFromLocalStorage();
+    return;
+  }
+  
+  try {
+    const { ref, get } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+    const calendarRef = ref(db, `calendar/${monthKey}`);
+    const snapshot = await get(calendarRef);
+    
+    const data = snapshot.val();
+    if (data) {
+      appState.selections = data.selections || {};
+      appState.participants = data.participants || appState.participants;
+      renderCalendar();
+      updateSummary();
+    } else {
+      // No Firebase data, try localStorage
       loadFromLocalStorage();
-    });
+    }
+  } catch (error) {
+    console.error('Firebase load error:', error);
+    // Fallback to localStorage
+    loadFromLocalStorage();
+  }
 }
 
-function saveToFirebase() {
+async function saveToFirebase() {
   console.log('Attempting to save to Firebase...');
   
   try {
     // Check if Firebase is available
-    if (typeof firebase === 'undefined') {
+    if (!window.firebaseReady || !window.database) {
       console.error('Firebase is not loaded!');
       saveToLocalStorage();
       showNotification('Saved locally (Firebase not loaded)');
@@ -715,7 +712,7 @@ function saveToFirebase() {
     }
     
     // Get database reference
-    const db = window.calendarDatabase || firebase.database();
+    const db = window.calendarDatabase || window.database;
     if (!db) {
       console.error('Database is not initialized!');
       saveToLocalStorage();
@@ -733,18 +730,16 @@ function saveToFirebase() {
       lastUpdated: appState.lastUpdated.toISOString()
     });
     
-    db.ref(`calendar/${monthKey}`).set({
+    const { ref, set } = await import('https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js');
+    const calendarRef = ref(db, `calendar/${monthKey}`);
+    
+    await set(calendarRef, {
       selections: appState.selections,
       participants: appState.participants,
       lastUpdated: appState.lastUpdated.toISOString()
-    }).then(() => {
-      console.log('Data saved to Firebase successfully');
-    }).catch((error) => {
-      console.error('Firebase save error:', error);
-      // Fallback to localStorage
-      saveToLocalStorage();
-      showNotification('Saved locally (Firebase unavailable)');
     });
+    
+    console.log('Data saved to Firebase successfully');
   } catch (error) {
     console.error('Firebase save error:', error);
     // Fallback to localStorage
@@ -985,8 +980,8 @@ function waitForFirebase(callback, maxAttempts = 10) {
     attempts++;
     console.log(`Checking Firebase (attempt ${attempts}/${maxAttempts})...`);
     
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
-      console.log('✅ Firebase loaded successfully');
+    if (window.firebaseReady && window.database) {
+      console.log('✅ Firebase loaded successfully with modern SDK');
       callback(true); // Firebase is available
     } else if (attempts >= maxAttempts) {
       console.log('❌ Firebase failed to load after maximum attempts');
