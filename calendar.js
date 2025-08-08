@@ -7,6 +7,10 @@ let appState = {
   personOfTheMonth: null
 };
 
+// Firebase real-time sync
+let isInitialLoad = true;
+let currentUser = null;
+
 // DOM Elements
 const monthDisplay = document.getElementById('monthDisplay');
 const personOfMonthDisplay = document.getElementById('personOfMonthDisplay');
@@ -18,16 +22,19 @@ const topDates = document.getElementById('topDates');
 const saveBtn = document.getElementById('saveBtn');
 const clearBtn = document.getElementById('clearBtn');
 const exportBtn = document.getElementById('exportBtn');
+const importBtn = document.getElementById('importBtn');
 
 // Initialize Application
 function initializeApp() {
-  loadFromLocalStorage();
   calculatePersonOfTheMonth();
   renderParticipants();
   renderCalendar();
   updateSummary();
   updatePersonOfMonthDisplay();
   setupEventListeners();
+  
+  // Initialize Firebase sync
+  initializeFirebaseSync();
 }
 
 // Event Listeners
@@ -37,6 +44,7 @@ function setupEventListeners() {
   saveBtn.addEventListener('click', saveSelections);
   clearBtn.addEventListener('click', clearAllData);
   exportBtn.addEventListener('click', exportSummary);
+  importBtn.addEventListener('click', importData);
 }
 
 // Calendar Management
@@ -280,10 +288,10 @@ function showParticipantSelector(dateKey, currentSelections, dayElement) {
       delete appState.selections[dateKey];
     }
     
-    saveToLocalStorage();
-    updateDayVisualState(dayElement);
-    updateSummary();
-    document.body.removeChild(modal);
+      saveToFirebase();
+  updateDayVisualState(dayElement);
+  updateSummary();
+  document.body.removeChild(modal);
   });
   
   // Close modal when clicking outside
@@ -414,10 +422,68 @@ function changeMonth(direction) {
   renderCalendar();
   updateSummary();
   updatePersonOfMonthDisplay();
-  saveToLocalStorage();
+  saveToFirebase();
 }
 
-// Data Persistence
+// Firebase Real-time Sync
+function initializeFirebaseSync() {
+  // Get current month key for database
+  const monthKey = getMonthKey(appState.currentMonth);
+  
+  // Listen for real-time updates
+  database.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
+    const data = snapshot.val();
+    if (data && !isInitialLoad) {
+      // Update app state with data from Firebase
+      appState.selections = data.selections || {};
+      appState.participants = data.participants || appState.participants;
+      
+      // Re-render the calendar and summary
+      renderCalendar();
+      updateSummary();
+      showNotification('Calendar updated from team!');
+    }
+    isInitialLoad = false;
+  });
+  
+  // Load initial data
+  loadFromFirebase();
+}
+
+function loadFromFirebase() {
+  const monthKey = getMonthKey(appState.currentMonth);
+  
+  database.ref(`calendar/${monthKey}`).once('value')
+    .then((snapshot) => {
+      const data = snapshot.val();
+      if (data) {
+        appState.selections = data.selections || {};
+        appState.participants = data.participants || appState.participants;
+        renderCalendar();
+        updateSummary();
+      }
+    })
+    .catch((error) => {
+      console.log('No existing data found, starting fresh');
+    });
+}
+
+function saveToFirebase() {
+  const monthKey = getMonthKey(appState.currentMonth);
+  appState.lastUpdated = new Date();
+  
+  database.ref(`calendar/${monthKey}`).set({
+    selections: appState.selections,
+    participants: appState.participants,
+    lastUpdated: appState.lastUpdated.toISOString()
+  });
+}
+
+function getMonthKey(date) {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+}
+
+// Data Persistence (fallback)
 function saveToLocalStorage() {
   appState.lastUpdated = new Date();
   localStorage.setItem('calendarTracker', JSON.stringify(appState));
@@ -440,19 +506,19 @@ function loadFromLocalStorage() {
 
 // Action Handlers
 function saveSelections() {
-  saveToLocalStorage();
-  showNotification('Selections saved successfully!');
+  saveToFirebase();
+  showNotification('Selections saved and shared with team!');
 }
 
 function clearAllData() {
   if (confirm('Are you sure you want to clear all data? This action cannot be undone.')) {
     appState.selections = {};
     appState.participants = [];
-    saveToLocalStorage();
+    saveToFirebase();
     renderParticipants();
     renderCalendar();
     updateSummary();
-    showNotification('All data cleared successfully!');
+    showNotification('All data cleared and shared with team!');
   }
 }
 
@@ -479,6 +545,22 @@ function exportSummary() {
     exportText += `   Participants: ${item.participants.join(', ')}\n\n`;
   });
   
+  // Add all selections for manual sharing
+  exportText += `\nAll Selections:\n`;
+  exportText += `==============\n`;
+  
+  Object.entries(appState.selections).forEach(([date, participants]) => {
+    if (participants.length > 0) {
+      const dateObj = new Date(date);
+      const formattedDate = dateObj.toLocaleDateString('en-US', { 
+        weekday: 'long', 
+        month: 'long', 
+        day: 'numeric' 
+      });
+      exportText += `${formattedDate}: ${participants.join(', ')}\n`;
+    }
+  });
+  
   // Create and download file
   const blob = new Blob([exportText], { type: 'text/plain' });
   const url = URL.createObjectURL(blob);
@@ -491,6 +573,33 @@ function exportSummary() {
   URL.revokeObjectURL(url);
   
   showNotification('Summary exported successfully!');
+}
+
+function importData() {
+  // Create file input
+  const fileInput = document.createElement('input');
+  fileInput.type = 'file';
+  fileInput.accept = '.txt';
+  
+  fileInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target.result;
+        // For now, just show the content for manual review
+        alert('Import feature coming soon! For now, please manually enter the data from the exported files.');
+        console.log('Import content:', content);
+      } catch (error) {
+        alert('Error reading file. Please try again.');
+      }
+    };
+    reader.readAsText(file);
+  });
+  
+  fileInput.click();
 }
 
 // Utility Functions
@@ -566,7 +675,7 @@ function checkMonthChange() {
     renderCalendar();
     updateSummary();
     updatePersonOfMonthDisplay();
-    saveToLocalStorage();
+    saveToFirebase();
     showNotification('Calendar updated to current month!');
   }
 }
