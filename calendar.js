@@ -320,24 +320,43 @@ function validateParticipantNames() {
 
 // Date Selection Logic
 function handleDateClick(dayElement) {
+  console.log('=== HANDLE DATE CLICK ===');
+  console.log('Day element:', dayElement);
+  console.log('Element dataset:', dayElement.dataset);
+  
   // Check if this is a past date (excluding today)
   const dateKey = dayElement.dataset.date;
   const date = new Date(dateKey);
   const currentDate = new Date();
   const todayStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), currentDate.getDate());
   
+  console.log('Date key:', dateKey);
+  console.log('Date object:', date);
+  console.log('Current date:', currentDate);
+  console.log('Today start:', todayStart);
+  console.log('Is past date:', date < todayStart);
+  
   if (date < todayStart) {
+    console.log('❌ Past date clicked, showing notification');
     showNotification('Cannot select past dates!');
     return;
   }
   
   const currentSelections = appState.selections[dateKey] || [];
+  console.log('Current selections for this date:', currentSelections);
   
+  console.log('✅ Opening participant selector...');
   // Show participant selection dialog
   showParticipantSelector(dateKey, currentSelections, dayElement);
 }
 
 function showParticipantSelector(dateKey, currentSelections, dayElement) {
+  console.log('=== SHOW PARTICIPANT SELECTOR ===');
+  console.log('Date key:', dateKey);
+  console.log('Current selections:', currentSelections);
+  console.log('Day element:', dayElement);
+  console.log('Participants:', appState.participants);
+  
   // Create modal overlay
   const modal = document.createElement('div');
   modal.className = 'participant-modal';
@@ -362,7 +381,9 @@ function showParticipantSelector(dateKey, currentSelections, dayElement) {
     </div>
   `;
   
+  console.log('Modal HTML created, appending to body...');
   document.body.appendChild(modal);
+  console.log('✅ Modal added to body');
   
   // Add event listeners
   const cancelBtn = modal.querySelector('.cancel');
@@ -522,7 +543,7 @@ function updateConnectionStatus() {
     }
     
     // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0 && window.calendarDatabase) {
+    if (typeof firebase !== 'undefined' && firebase.apps && firebase.apps.length > 0 && window.calendarDatabase) {
       connectionStatus.innerHTML = '🟢 Connected';
       connectionStatus.className = 'connection-status connected';
       console.log('Firebase is connected');
