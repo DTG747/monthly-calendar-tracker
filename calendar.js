@@ -855,6 +855,27 @@ function checkMonthChange() {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
+  console.log('DOM loaded, initializing app...');
+  
+  // Test Firebase connection first
+  setTimeout(() => {
+    console.log('Testing Firebase connection...');
+    console.log('Firebase object:', typeof firebase);
+    console.log('Database object:', typeof database);
+    
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+      console.log('✅ Firebase is loaded and initialized');
+    } else {
+      console.log('❌ Firebase is not properly loaded');
+    }
+    
+    if (typeof database !== 'undefined' && database !== null) {
+      console.log('✅ Database reference is available');
+    } else {
+      console.log('❌ Database reference is not available');
+    }
+  }, 1000);
+  
   initializeApp();
   
   // Check for month change every hour
@@ -866,4 +887,16 @@ document.addEventListener('DOMContentLoaded', () => {
   // Add manual save function to window for debugging
   window.manualSave = saveSelections;
   window.debugAppState = () => console.log('App State:', appState);
+  window.testFirebase = () => {
+    console.log('Testing Firebase write...');
+    if (database) {
+      database.ref('test').set({timestamp: Date.now()}).then(() => {
+        console.log('✅ Firebase write test successful');
+      }).catch((error) => {
+        console.error('❌ Firebase write test failed:', error);
+      });
+    } else {
+      console.log('❌ Database not available for test');
+    }
+  };
 }); 

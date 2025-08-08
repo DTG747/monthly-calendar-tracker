@@ -19,9 +19,11 @@ try {
 }
 
 // Get database reference
+let database;
 try {
-  const database = firebase.database();
+  database = firebase.database();
   console.log('Database reference created successfully');
 } catch (error) {
   console.error('Database reference error:', error);
+  database = null;
 } 
