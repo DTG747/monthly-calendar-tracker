@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Monthly Calendar Tracker</title>
+  <link rel="stylesheet" href="calendar.css">
+</head>
+<body>
+  <div class="app-container">
+    <header class="calendar-header">
+      <button class="nav-btn" id="prevMonth" aria-label="Previous month">‹</button>
+      <h1 id="monthDisplay">January 2024</h1>
+      <button class="nav-btn" id="nextMonth" aria-label="Next month">›</button>
+    </header>
+    
+    <section class="participants-section">
+      <h2>Participants</h2>
+      <div class="participant-inputs" id="participantInputs">
+        <!-- 7 participant input fields will be generated here -->
+      </div>
+    </section>
+    
+    <main class="calendar-main">
+      <div class="calendar-grid" id="calendarGrid">
+        <!-- Calendar days will be generated here -->
+      </div>
+    </main>
+    
+    <aside class="summary-panel">
+      <h2>Top 3 Dates</h2>
+      <div class="top-dates" id="topDates">
+        <!-- Top dates will be calculated and displayed here -->
+      </div>
+    </aside>
+    
+    <footer class="app-actions">
+      <button id="saveBtn" class="action-btn primary">Save Selections</button>
+      <button id="clearBtn" class="action-btn secondary">Clear All</button>
+      <button id="exportBtn" class="action-btn secondary">Export Summary</button>
+    </footer>
+  </div>
+  <script src="calendar.js"></script>
+</body>
+</html> 
