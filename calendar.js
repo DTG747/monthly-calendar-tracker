@@ -987,123 +987,131 @@ function waitForFirebase(callback, maxAttempts = 10) {
 
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('DOM loaded, waiting for Firebase...');
+  console.log('DOM loaded, initializing app immediately...');
   
-  // Wait for Firebase to load before initializing app
-  waitForFirebase((firebaseAvailable) => {
-    console.log('Initializing app...');
-    
-    // Set global Firebase availability flag
-    window.firebaseAvailable = firebaseAvailable;
-    
-    initializeApp();
-    
-    // Check for month change every hour
-    setInterval(checkMonthChange, 60 * 60 * 1000);
-    
-    // Also check on page focus
-    window.addEventListener('focus', checkMonthChange);
-    
-    // Add manual functions to window for debugging
-    window.manualSave = saveSelections;
-    window.debugAppState = () => console.log('App State:', appState);
-    window.testFirebase = () => {
-      console.log('Testing Firebase write...');
-      if (typeof firebase !== 'undefined') {
-        const db = window.calendarDatabase || firebase.database();
-        if (db) {
-          db.ref('test').set({timestamp: Date.now()}).then(() => {
-            console.log('✅ Firebase write test successful');
-          }).catch((error) => {
-            console.error('❌ Firebase write test failed:', error);
-          });
-        } else {
-          console.log('❌ Database not available for test');
-        }
+  // Initialize app immediately with local storage
+  window.firebaseAvailable = false;
+  initializeApp();
+  
+  // Check for month change every hour
+  setInterval(checkMonthChange, 60 * 60 * 1000);
+  
+  // Also check on page focus
+  window.addEventListener('focus', checkMonthChange);
+  
+  // Add manual functions to window for debugging
+  window.manualSave = saveSelections;
+  window.debugAppState = () => console.log('App State:', appState);
+  window.testFirebase = () => {
+    console.log('Testing Firebase write...');
+    if (typeof firebase !== 'undefined') {
+      const db = window.calendarDatabase || firebase.database();
+      if (db) {
+        db.ref('test').set({timestamp: Date.now()}).then(() => {
+          console.log('✅ Firebase write test successful');
+        }).catch((error) => {
+          console.error('❌ Firebase write test failed:', error);
+        });
       } else {
-        console.log('❌ Firebase not loaded');
+        console.log('❌ Database not available for test');
       }
-    };
-    window.forceFirebaseSave = () => {
-      console.log('Force saving to Firebase...');
-      saveToFirebase();
-    };
-    window.checkTodayDate = () => {
-      const today = new Date();
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-      console.log('=== TODAY\'S DATE TEST ===');
-      console.log('Today:', today.toDateString());
-      console.log('Today object:', today);
-      console.log('Today start:', todayStart);
-      console.log('Today time:', today.getTime());
-      console.log('Today start time:', todayStart.getTime());
-      console.log('Is today past date?', today < todayStart);
-      console.log('Today < TodayStart:', today < todayStart);
-      console.log('Today === TodayStart:', today.getTime() === todayStart.getTime());
-      console.log('========================');
-    };
+    } else {
+      console.log('❌ Firebase not loaded');
+    }
+  };
+  window.forceFirebaseSave = () => {
+    console.log('Force saving to Firebase...');
+    saveToFirebase();
+  };
+  window.checkTodayDate = () => {
+    const today = new Date();
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    console.log('=== TODAY\'S DATE TEST ===');
+    console.log('Today:', today.toDateString());
+    console.log('Today object:', today);
+    console.log('Today start:', todayStart);
+    console.log('Today time:', today.getTime());
+    console.log('Today start time:', todayStart.getTime());
+    console.log('Is today past date?', today < todayStart);
+    console.log('Today < TodayStart:', today < todayStart);
+    console.log('Today === TodayStart:', today.getTime() === todayStart.getTime());
+    console.log('========================');
+  };
+  
+  window.findTodayElement = () => {
+    const today = new Date();
+    const todayString = today.toDateString();
+    console.log('Looking for today\'s element...');
+    console.log('Today string:', todayString);
     
-    window.findTodayElement = () => {
-      const today = new Date();
-      const todayString = today.toDateString();
-      console.log('Looking for today\'s element...');
-      console.log('Today string:', todayString);
-      
-      const allDays = document.querySelectorAll('.calendar-day');
-      allDays.forEach((day, index) => {
-        const dateKey = day.dataset.date;
-        if (dateKey) {
-          const date = new Date(dateKey);
-          if (date.toDateString() === todayString) {
-            console.log(`Found today's element at index ${index}:`, day);
-            console.log('Element classes:', day.className);
-            console.log('Element dataset:', day.dataset);
-            return day;
-          }
+    const allDays = document.querySelectorAll('.calendar-day');
+    allDays.forEach((day, index) => {
+      const dateKey = day.dataset.date;
+      if (dateKey) {
+        const date = new Date(dateKey);
+        if (date.toDateString() === todayString) {
+          console.log(`Found today's element at index ${index}:`, day);
+          console.log('Element classes:', day.className);
+          console.log('Element dataset:', day.dataset);
+          return day;
         }
-      });
-      console.log('Today\'s element not found');
-      return null;
-    };
-    window.loadFirebaseManually = () => {
-      console.log('Attempting to load Firebase manually...');
-      if (typeof firebase === 'undefined') {
-        console.log('Firebase not available, trying to load scripts...');
-        // Try to load Firebase scripts manually
-        const script1 = document.createElement('script');
-        script1.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
-        script1.onload = () => {
-          console.log('Firebase app script loaded');
-          const script2 = document.createElement('script');
-          script2.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js';
-          script2.onload = () => {
-            console.log('Firebase database script loaded');
-            // Load firebase-config.js
-            const script3 = document.createElement('script');
-            script3.src = 'firebase-config.js';
-            script3.onload = () => {
-              console.log('Firebase config loaded');
-              // Re-initialize Firebase
-              window.firebaseAvailable = true;
-              initializeFirebaseSync();
-              updateConnectionStatus();
-            };
-            document.head.appendChild(script3);
+      }
+    });
+    console.log('Today\'s element not found');
+    return null;
+  };
+  
+  window.loadFirebaseManually = () => {
+    console.log('Attempting to load Firebase manually...');
+    if (typeof firebase === 'undefined') {
+      console.log('Firebase not available, trying to load scripts...');
+      // Try to load Firebase scripts manually
+      const script1 = document.createElement('script');
+      script1.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js';
+      script1.onload = () => {
+        console.log('Firebase app script loaded');
+        const script2 = document.createElement('script');
+        script2.src = 'https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js';
+        script2.onload = () => {
+          console.log('Firebase database script loaded');
+          // Load firebase-config.js
+          const script3 = document.createElement('script');
+          script3.src = 'firebase-config.js';
+          script3.onload = () => {
+            console.log('Firebase config loaded');
+            // Re-initialize Firebase
+            window.firebaseAvailable = true;
+            initializeFirebaseSync();
+            updateConnectionStatus();
           };
-          document.head.appendChild(script2);
+          document.head.appendChild(script3);
         };
-        document.head.appendChild(script1);
-      } else {
-        console.log('Firebase already loaded, re-initializing...');
+        document.head.appendChild(script2);
+      };
+      document.head.appendChild(script1);
+    } else {
+      console.log('Firebase already loaded, re-initializing...');
+      window.firebaseAvailable = true;
+      initializeFirebaseSync();
+      updateConnectionStatus();
+    }
+  };
+  
+  window.reloadApp = () => {
+    console.log('Reloading app...');
+    location.reload();
+  };
+  
+  // Try to load Firebase in the background
+  setTimeout(() => {
+    console.log('Attempting to load Firebase in background...');
+    waitForFirebase((firebaseAvailable) => {
+      if (firebaseAvailable) {
+        console.log('Firebase loaded in background, updating app...');
         window.firebaseAvailable = true;
         initializeFirebaseSync();
         updateConnectionStatus();
       }
-    };
-    
-    window.reloadApp = () => {
-      console.log('Reloading app...');
-      location.reload();
-    };
-  });
+    });
+  }, 1000);
 }); 
