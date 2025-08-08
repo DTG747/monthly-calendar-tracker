@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Firebase Connection Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        .test-result {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        .loading {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        .log {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: monospace;
+            white-space: pre-wrap;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔥 Firebase Connection Test</h1>
+    
+    <div class="test-container">
+        <h2>Test Results</h2>
+        <div id="results"></div>
+    </div>
+    
+    <div class="test-container">
+        <h2>Manual Tests</h2>
+        <button onclick="runManualTest()">Run Manual Test</button>
+        <button onclick="testWrite()">Test Write</button>
+        <button onclick="testRead()">Test Read</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+    
+    <div class="test-container">
+        <h2>Console Log</h2>
+        <div id="log" class="log"></div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-database-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBNEGMwnn075RYYxXc9NQNCGoYtrhq_Q_0",
+            authDomain: "monthlycalendartracker.firebaseapp.com",
+            databaseURL: "https://monthlycalendartracker-default-rtdb.firebaseio.com",
+            projectId: "monthlycalendartracker",
+            storageBucket: "monthlycalendartracker.firebasestorage.app",
+            messagingSenderId: "151202130765",
+            appId: "1:151202130765:web:563379d60ebb44a0bce504",
+            measurementId: "G-E3RBH9FV5Q"
+        };
+
+        let database;
+        let testResults = [];
+
+        function log(message) {
+            const logDiv = document.getElementById('log');
+            const timestamp = new Date().toLocaleTimeString();
+            logDiv.textContent += `[${timestamp}] ${message}\n`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(message);
+        }
+
+        function addResult(test, status, message) {
+            const resultsDiv = document.getElementById('results');
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${status}`;
+            resultDiv.innerHTML = `<strong>${test}:</strong> ${message}`;
+            resultsDiv.appendChild(resultDiv);
+            testResults.push({test, status, message});
+        }
+
+        function clearLog() {
+            document.getElementById('log').textContent = '';
+        }
+
+        // Test 1: Check if Firebase SDK is loaded
+        function testFirebaseSDK() {
+            log('Testing Firebase SDK...');
+            if (typeof firebase !== 'undefined') {
+                addResult('Firebase SDK', 'success', '✅ Firebase SDK is loaded');
+                log('Firebase SDK loaded successfully');
+                return true;
+            } else {
+                addResult('Firebase SDK', 'error', '❌ Firebase SDK is not loaded');
+                log('Firebase SDK not found');
+                return false;
+            }
+        }
+
+        // Test 2: Initialize Firebase
+        function testFirebaseInit() {
+            log('Testing Firebase initialization...');
+            try {
+                firebase.initializeApp(firebaseConfig);
+                addResult('Firebase Init', 'success', '✅ Firebase initialized successfully');
+                log('Firebase initialized successfully');
+                return true;
+            } catch (error) {
+                addResult('Firebase Init', 'error', `❌ Firebase initialization failed: ${error.message}`);
+                log(`Firebase initialization error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 3: Get database reference
+        function testDatabaseRef() {
+            log('Testing database reference...');
+            try {
+                database = firebase.database();
+                addResult('Database Ref', 'success', '✅ Database reference created');
+                log('Database reference created successfully');
+                return true;
+            } catch (error) {
+                addResult('Database Ref', 'error', `❌ Database reference failed: ${error.message}`);
+                log(`Database reference error: ${error.message}`);
+                return false;
+            }
+        }
+
+        // Test 4: Test write operation
+        function testWrite() {
+            log('Testing write operation...');
+            if (!database) {
+                addResult('Write Test', 'error', '❌ Database not available');
+                log('Database not available for write test');
+                return;
+            }
+
+            const testData = {
+                message: 'Test write from connection test',
+                timestamp: Date.now(),
+                random: Math.random()
+            };
+
+            database.ref('connection-test').set(testData)
+                .then(() => {
+                    addResult('Write Test', 'success', '✅ Write operation successful');
+                    log('Write operation successful');
+                })
+                .catch((error) => {
+                    addResult('Write Test', 'error', `❌ Write operation failed: ${error.message}`);
+                    log(`Write operation error: ${error.message}`);
+                });
+        }
+
+        // Test 5: Test read operation
+        function testRead() {
+            log('Testing read operation...');
+            if (!database) {
+                addResult('Read Test', 'error', '❌ Database not available');
+                log('Database not available for read test');
+                return;
+            }
+
+            database.ref('connection-test').once('value')
+                .then((snapshot) => {
+                    const data = snapshot.val();
+                    if (data) {
+                        addResult('Read Test', 'success', '✅ Read operation successful');
+                        log(`Read operation successful. Data: ${JSON.stringify(data)}`);
+                    } else {
+                        addResult('Read Test', 'info', 'ℹ️ Read successful but no data found');
+                        log('Read operation successful but no data found');
+                    }
+                })
+                .catch((error) => {
+                    addResult('Read Test', 'error', `❌ Read operation failed: ${error.message}`);
+                    log(`Read operation error: ${error.message}`);
+                });
+        }
+
+        // Test 6: Test real-time listener
+        function testRealtimeListener() {
+            log('Testing real-time listener...');
+            if (!database) {
+                addResult('Realtime Test', 'error', '❌ Database not available');
+                log('Database not available for real-time test');
+                return;
+            }
+
+            const listener = database.ref('realtime-test').on('value', (snapshot) => {
+                const data = snapshot.val();
+                log(`Realtime update received: ${JSON.stringify(data)}`);
+                addResult('Realtime Test', 'success', '✅ Real-time listener working');
+                // Remove listener after first update
+                database.ref('realtime-test').off('value', listener);
+            }, (error) => {
+                addResult('Realtime Test', 'error', `❌ Real-time listener failed: ${error.message}`);
+                log(`Realtime listener error: ${error.message}`);
+            });
+
+            // Trigger an update
+            setTimeout(() => {
+                database.ref('realtime-test').set({test: Date.now()});
+            }, 1000);
+        }
+
+        function runManualTest() {
+            log('Running manual test...');
+            testWrite();
+            setTimeout(() => {
+                testRead();
+            }, 1000);
+        }
+
+        // Run all tests automatically
+        function runAllTests() {
+            log('Starting Firebase connection tests...');
+            
+            // Clear previous results
+            document.getElementById('results').innerHTML = '';
+            testResults = [];
+
+            // Run tests in sequence
+            setTimeout(() => {
+                if (testFirebaseSDK()) {
+                    setTimeout(() => {
+                        if (testFirebaseInit()) {
+                            setTimeout(() => {
+                                if (testDatabaseRef()) {
+                                    setTimeout(() => {
+                                        testWrite();
+                                        setTimeout(() => {
+                                            testRead();
+                                            setTimeout(() => {
+                                                testRealtimeListener();
+                                            }, 1000);
+                                        }, 1000);
+                                    }, 500);
+                                }
+                            }, 500);
+                        }
+                    }, 500);
+                }
+            }, 1000);
+        }
+
+        // Start tests when page loads
+        window.addEventListener('load', () => {
+            log('Page loaded, starting tests...');
+            runAllTests();
+        });
+    </script>
+</body>
+</html> 

@@ -462,10 +462,10 @@ function updateConnectionStatus() {
     console.log('Checking Firebase connection...');
     console.log('Firebase object:', typeof firebase);
     console.log('Firebase apps:', firebase?.apps);
-    console.log('Database object:', typeof database);
+    console.log('Calendar database:', typeof window.calendarDatabase);
     
     // Check if Firebase is available
-    if (typeof firebase !== 'undefined' && firebase.apps.length > 0) {
+    if (typeof firebase !== 'undefined' && firebase.apps.length > 0 && window.calendarDatabase) {
       connectionStatus.innerHTML = '🟢 Connected';
       connectionStatus.className = 'connection-status connected';
       console.log('Firebase is connected');
@@ -517,8 +517,13 @@ function initializeFirebaseSync() {
       return;
     }
     
-    if (typeof database === 'undefined') {
-      console.error('Database is not initialized!');
+    // Get database reference directly from Firebase
+    let db;
+    try {
+      db = firebase.database();
+      console.log('Database reference created successfully');
+    } catch (dbError) {
+      console.error('Database reference error:', dbError);
       loadFromLocalStorage();
       return;
     }
@@ -528,7 +533,7 @@ function initializeFirebaseSync() {
     console.log('Month key:', monthKey);
     
     // Listen for real-time updates
-    database.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
+    db.ref(`calendar/${monthKey}`).on('value', (snapshot) => {
       console.log('Firebase data received:', snapshot.val());
       const data = snapshot.val();
       if (data && !isInitialLoad) {
@@ -548,6 +553,9 @@ function initializeFirebaseSync() {
       loadFromLocalStorage();
     });
     
+    // Store database reference globally for other functions
+    window.calendarDatabase = db;
+    
     // Load initial data
     loadFromFirebase();
   } catch (error) {
@@ -560,7 +568,10 @@ function initializeFirebaseSync() {
 function loadFromFirebase() {
   const monthKey = getMonthKey(appState.currentMonth);
   
-  database.ref(`calendar/${monthKey}`).once('value')
+  // Get database reference
+  const db = window.calendarDatabase || firebase.database();
+  
+  db.ref(`calendar/${monthKey}`).once('value')
     .then((snapshot) => {
       const data = snapshot.val();
       if (data) {
@@ -592,7 +603,9 @@ function saveToFirebase() {
       return;
     }
     
-    if (typeof database === 'undefined') {
+    // Get database reference
+    const db = window.calendarDatabase || firebase.database();
+    if (!db) {
       console.error('Database is not initialized!');
       saveToLocalStorage();
       showNotification('Saved locally (Database not initialized)');
@@ -609,7 +622,7 @@ function saveToFirebase() {
       lastUpdated: appState.lastUpdated.toISOString()
     });
     
-    database.ref(`calendar/${monthKey}`).set({
+    db.ref(`calendar/${monthKey}`).set({
       selections: appState.selections,
       participants: appState.participants,
       lastUpdated: appState.lastUpdated.toISOString()
