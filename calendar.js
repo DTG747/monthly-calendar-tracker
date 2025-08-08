@@ -160,8 +160,16 @@ function createDayElement(day, month, year) {
   
   // Debug logging for today's date
   if (isToday) {
+    console.log('=== TODAY\'S DATE DEBUG ===');
     console.log('Today\'s date found:', date.toDateString());
+    console.log('Date object:', date);
+    console.log('Current date:', currentDate);
+    console.log('Today start:', todayStart);
     console.log('Is past date:', isPastDate);
+    console.log('Date comparison:', date < todayStart);
+    console.log('Date time:', date.getTime());
+    console.log('Today start time:', todayStart.getTime());
+    console.log('========================');
   }
   
   dayElement.className = `calendar-day ${isPastDate ? 'past-date' : ''} ${isToday ? 'today' : ''}`;
@@ -180,16 +188,27 @@ function createDayElement(day, month, year) {
   // Add click and touch handlers for today and future dates (allow today to be selected)
   if (!isPastDate) {
     dayElement.addEventListener('click', () => {
-      console.log('Date clicked:', formatDate(date), 'Is today:', isToday);
+      console.log('Date clicked:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
       handleDateClick(dayElement);
     });
     dayElement.addEventListener('touchend', (e) => {
       e.preventDefault();
-      console.log('Date touched:', formatDate(date), 'Is today:', isToday);
+      console.log('Date touched:', formatDate(date), 'Is today:', isToday, 'Is past date:', isPastDate);
       handleDateClick(dayElement);
     });
   } else if (isToday) {
-    console.log('Today\'s date is marked as past date - this is wrong!');
+    console.log('❌ Today\'s date is marked as past date - this is wrong!');
+    console.log('Adding click handler anyway for today\'s date...');
+    // Force add click handler for today's date
+    dayElement.addEventListener('click', () => {
+      console.log('Today\'s date clicked (forced):', formatDate(date));
+      handleDateClick(dayElement);
+    });
+    dayElement.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      console.log('Today\'s date touched (forced):', formatDate(date));
+      handleDateClick(dayElement);
+    });
   }
   
   // Update visual state
@@ -982,9 +1001,40 @@ document.addEventListener('DOMContentLoaded', () => {
     };
     window.checkTodayDate = () => {
       const today = new Date();
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      console.log('=== TODAY\'S DATE TEST ===');
       console.log('Today:', today.toDateString());
-      console.log('Today start:', new Date(today.getFullYear(), today.getMonth(), today.getDate()));
-      console.log('Is today past date?', today < new Date(today.getFullYear(), today.getMonth(), today.getDate()));
+      console.log('Today object:', today);
+      console.log('Today start:', todayStart);
+      console.log('Today time:', today.getTime());
+      console.log('Today start time:', todayStart.getTime());
+      console.log('Is today past date?', today < todayStart);
+      console.log('Today < TodayStart:', today < todayStart);
+      console.log('Today === TodayStart:', today.getTime() === todayStart.getTime());
+      console.log('========================');
+    };
+    
+    window.findTodayElement = () => {
+      const today = new Date();
+      const todayString = today.toDateString();
+      console.log('Looking for today\'s element...');
+      console.log('Today string:', todayString);
+      
+      const allDays = document.querySelectorAll('.calendar-day');
+      allDays.forEach((day, index) => {
+        const dateKey = day.dataset.date;
+        if (dateKey) {
+          const date = new Date(dateKey);
+          if (date.toDateString() === todayString) {
+            console.log(`Found today's element at index ${index}:`, day);
+            console.log('Element classes:', day.className);
+            console.log('Element dataset:', day.dataset);
+            return day;
+          }
+        }
+      });
+      console.log('Today\'s element not found');
+      return null;
     };
     window.loadFirebaseManually = () => {
       console.log('Attempting to load Firebase manually...');
